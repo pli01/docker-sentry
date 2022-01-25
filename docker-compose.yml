@@ -1,0 +1,90 @@
+version: '3.8'
+
+volumes:
+   pgdb:
+
+services:
+  redis:
+    image: redis
+
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: sentry
+      POSTGRES_DBNAME: sentry
+      POSTGRES_DBUSER: sentry
+      POSTGRES_DBPASS: sentry
+    volumes:
+     - pgdb:/var/lib/postgresql/data
+
+  sentry:
+    image: amd64/sentry
+    depends_on:
+     - redis
+     - postgres
+     - mailhog
+    links:
+     - redis
+     - postgres
+     - mailhog
+    ports:
+     - 9000:9000
+    environment:
+      SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_EMAIL_HOST: mailhog
+      SENTRY_EMAIL_PORT: 1025
+
+  cron:
+    image: amd64/sentry
+    depends_on:
+     - redis
+     - postgres
+     - mailhog
+
+    links:
+     - redis
+     - postgres
+     - mailhog
+    command: "sentry run cron"
+    environment:
+      SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_EMAIL_HOST: mailhog
+      SENTRY_EMAIL_PORT: 1025
+
+  worker:
+    image: amd64/sentry
+    depends_on:
+     - redis
+     - postgres
+     - mailhog
+    links:
+     - redis
+     - postgres
+     - mailhog
+    command: "sentry run worker"
+    environment:
+      SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_EMAIL_HOST: mailhog
+      SENTRY_EMAIL_PORT: 1025
+
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog
+    restart: always
+    ports:
+        - 1025:1025
+        - 8025:8025
+
